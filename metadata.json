@@ -1,0 +1,5 @@
+{
+  "name": "WorkSpan",
+  "description": "A retro-themed focus timer with automated logging, statistics, and background notifications.",
+  "requestFramePermissions": []
+}

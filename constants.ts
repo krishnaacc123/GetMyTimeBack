@@ -1,0 +1,7 @@
+export const DEFAULT_STUDY_TIME = 30;
+export const DEFAULT_BREAK_TIME = 10;
+export const STORAGE_KEY_LOGS = 'focus-retro-logs';
+export const STORAGE_KEY_SETTINGS = 'focus-retro-settings';
+export const STORAGE_KEY_TIMER_STATE = 'focus-retro-timer-state';
+// A very short silent MP3 file (base64 encoded) to keep the Media Session active
+export const SILENT_AUDIO_URL = 'data:audio/mpeg;base64,SUQzBAAAAAAAI1RTS1UAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP/7EAAAAAAAGAAAAHAAAABAAAAAAA//7EAAAAAAAGAAAAHAAAABAAAAAAA//7EAAAAAAAGAAAAHAAAABAAAAAAA//7EAAAAAAAGAAAAHAAAABAAAAAAA//7EAAAAAAAGAAAAHAAAABAAAAAAA';

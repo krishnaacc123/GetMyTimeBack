@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WorkSpan</title>
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⏱️</text></svg>">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Comic+Neue:wght@400;700&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            fontFamily: {
+              'display': ['"Bangers"', 'cursive'],
+              'body': ['"Comic Neue"', 'cursive'],
+            },
+            colors: {
+              'retro-paper': '#fdf6e3',
+              'retro-dark': '#1a1a1a',
+              'retro-yellow': '#ffeb3b',
+              'retro-pink': '#ff80ab',
+              'retro-blue': '#80d8ff',
+              'retro-green': '#b9f6ca',
+            },
+            boxShadow: {
+              'retro': '4px 4px 0px 0px rgba(0,0,0,1)',
+              'retro-hover': '2px 2px 0px 0px rgba(0,0,0,1)',
+            },
+            keyframes: {
+                wiggle: {
+                    '0%, 100%': { transform: 'rotate(-3deg)' },
+                    '50%': { transform: 'rotate(3deg)' },
+                },
+                float: {
+                    '0%, 100%': { transform: 'translateY(0)', opacity: '0.8' },
+                    '50%': { transform: 'translateY(-15px)', opacity: '1' },
+                },
+                type: {
+                    '0%, 100%': { transform: 'translateY(0) rotate(-12deg)' },
+                    '50%': { transform: 'translateY(8px) rotate(-12deg)' },
+                },
+                'type-mirror': {
+                    '0%, 100%': { transform: 'scaleX(-1) translateY(0) rotate(-12deg)' },
+                    '50%': { transform: 'scaleX(-1) translateY(8px) rotate(-12deg)' },
+                }
+            },
+            animation: {
+                'wiggle-slow': 'wiggle 3s ease-in-out infinite',
+                'float-slow': 'float 3s ease-in-out infinite',
+                'type-left': 'type-mirror 0.2s ease-in-out infinite',
+                'type-right': 'type 0.2s ease-in-out infinite 0.1s',
+                'bounce-slow': 'bounce 3s infinite',
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      body {
+        font-family: 'Comic Neue', cursive;
+      }
+      h1, h2, h3, .retro-title {
+        font-family: 'Bangers', cursive;
+        letter-spacing: 1px;
+      }
+      .animation-delay-500 {
+        animation-delay: 500ms;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "recharts": "https://esm.sh/recharts@^3.6.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-retro-paper text-retro-dark transition-colors duration-300 overflow-x-hidden">
+    <div id="root"></div>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').then(registration => {
+            console.log('SW registered: ', registration);
+          }).catch(registrationError => {
+            console.log('SW registration failed: ', registrationError);
+          });
+        });
+      }
+    </script>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>
