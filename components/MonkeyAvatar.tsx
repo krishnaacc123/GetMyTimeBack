@@ -34,7 +34,7 @@ const MonkeyAvatar: React.FC<MonkeyAvatarProps> = ({ mode, isActive }) => {
       />
       
       {/* Optional Status Badge */}
-      <div className={`absolute -bottom-2 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full border-2 border-black text-xs font-bold uppercase tracking-widest bg-white shadow-sm whitespace-nowrap transition-opacity duration-300 ${isActive ? 'opacity-100' : 'opacity-0'}`}>
+      <div className={`absolute -bottom-2 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full border-2 border-black text-sm font-bold uppercase tracking-widest bg-white shadow-sm whitespace-nowrap transition-opacity duration-300 ${isActive ? 'opacity-100' : 'opacity-0'}`}>
          {isWork ? 'Focusing...' : 'Relaxing...'}
       </div>
     </div>

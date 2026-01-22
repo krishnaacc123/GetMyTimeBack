@@ -10,7 +10,8 @@ const RetroButton: React.FC<RetroButtonProps> = ({
   className = '', 
   ...props 
 }) => {
-  const baseStyle = "font-display text-xl px-6 py-3 border-4 border-black shadow-retro active:translate-x-[2px] active:translate-y-[2px] active:shadow-retro-hover transition-all duration-100 uppercase tracking-wider";
+  // Added focus:outline-none focus:ring-4 focus:ring-retro-blue focus:ring-offset-2 for accessibility
+  const baseStyle = "font-display text-xl px-6 py-3 border-4 border-black shadow-retro active:translate-x-[2px] active:translate-y-[2px] active:shadow-retro-hover transition-all duration-100 uppercase tracking-wider focus:outline-none focus:ring-4 focus:ring-retro-blue focus:ring-offset-2";
   
   let colorStyle = "";
   switch (variant) {

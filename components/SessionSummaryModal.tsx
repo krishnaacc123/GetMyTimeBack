@@ -2,10 +2,12 @@ import React, { useEffect, useState, useRef } from 'react';
 import RetroButton from './RetroButton';
 import { formatDuration } from '../utils/time';
 import { getRandomQuote } from '../utils/quotes';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface SessionSummaryModalProps {
   type: 'STUDY' | 'BREAK';
   durationSeconds: number;
+  studyDuration?: number;
   onNext: () => void;
   onEndSession: () => void;
   autoStart?: boolean;
@@ -15,14 +17,29 @@ interface SessionSummaryModalProps {
 const SessionSummaryModal: React.FC<SessionSummaryModalProps> = ({ 
   type, 
   durationSeconds, 
+  studyDuration,
   onNext, 
   onEndSession,
   autoStart = false,
   finishedNaturally 
 }) => {
+  const { t } = useLanguage();
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const [quote, setQuote] = useState('');
   const [countdown, setCountdown] = useState(5);
   const timerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (dialog && !dialog.open) {
+      dialog.showModal();
+    }
+  }, []);
+
+  const handleCancel = (e: React.SyntheticEvent) => {
+    e.preventDefault();
+    onEndSession();
+  };
 
   useEffect(() => {
     setQuote(getRandomQuote());
@@ -54,25 +71,29 @@ const SessionSummaryModal: React.FC<SessionSummaryModalProps> = ({
 
   const getButtonText = () => {
     if (autoStart) {
-        return `Starting in ${countdown}...`;
+        return `${t('startingIn')} ${countdown}...`;
     }
-    if (type === 'BREAK') return "Back to Work!";
-    return "Start Next Session";
+    if (type === 'BREAK') return t('backToWork');
+    return t('startNext');
   };
 
   const getTitle = () => {
-    if (type === 'BREAK') return "Break Time Over";
-    return "Session Complete!";
+    if (studyDuration && studyDuration > 0) return t('sessionComplete');
+    if (type === 'BREAK') return t('breakOver');
+    return t('sessionComplete');
   };
 
   const getLabel = () => {
-      if (type === 'BREAK') return "Break Duration";
-      return "Time Worked";
+      if (type === 'BREAK') return t('breakDuration');
+      return t('timeWorked');
   }
 
   return (
-    <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-300">
-      <div className="bg-white border-4 border-black shadow-retro p-8 w-full max-w-md text-center transform scale-100 animate-in zoom-in-95 duration-300 relative overflow-hidden">
+    <dialog
+      ref={dialogRef}
+      onCancel={handleCancel}
+      className="bg-white border-4 border-black shadow-retro p-8 w-full max-w-md text-center transform scale-100 animate-in zoom-in-95 duration-300 relative overflow-hidden backdrop:bg-black/80 backdrop:backdrop-blur-sm m-auto open:block"
+    >
         {/* Confetti-like decoration circles */}
         <div className="absolute top-2 left-2 w-4 h-4 rounded-full bg-retro-yellow border-2 border-black" />
         <div className="absolute top-4 right-6 w-6 h-6 rounded-full bg-retro-pink border-2 border-black" />
@@ -83,10 +104,23 @@ const SessionSummaryModal: React.FC<SessionSummaryModalProps> = ({
           {getTitle()}
         </h2>
         
-        <div className="my-6">
-          <p className="text-gray-500 uppercase text-xs font-bold tracking-widest mb-1">{getLabel()}</p>
-          <p className="text-6xl font-display">{formatDuration(durationSeconds)}</p>
-        </div>
+        {studyDuration && studyDuration > 0 ? (
+            <div className="flex justify-center gap-4 my-6">
+                <div className="flex-1 bg-retro-paper border-2 border-black p-2">
+                    <p className="text-gray-500 uppercase text-xs font-bold tracking-widest mb-1">{t('timeWorked')}</p>
+                    <p className="text-4xl font-display">{formatDuration(studyDuration)}</p>
+                </div>
+                <div className="flex-1 bg-white border-2 border-black p-2">
+                    <p className="text-gray-500 uppercase text-xs font-bold tracking-widest mb-1">{t('breakDuration')}</p>
+                    <p className="text-4xl font-display">{formatDuration(durationSeconds)}</p>
+                </div>
+            </div>
+        ) : (
+            <div className="my-6">
+              <p className="text-gray-500 uppercase text-sm font-bold tracking-widest mb-1">{getLabel()}</p>
+              <p className="text-6xl font-display">{formatDuration(durationSeconds)}</p>
+            </div>
+        )}
 
         <div className="bg-retro-paper border-2 border-black p-4 mb-6 rotate-1">
           <p className="font-body italic text-lg">"{quote}"</p>
@@ -100,7 +134,7 @@ const SessionSummaryModal: React.FC<SessionSummaryModalProps> = ({
                     onClick={onEndSession} 
                     className="flex-1"
                 >
-                    Got it!
+                    {t('gotIt')}
                 </RetroButton>
             ) : (
                 <>
@@ -113,13 +147,12 @@ const SessionSummaryModal: React.FC<SessionSummaryModalProps> = ({
                         {getButtonText()}
                     </RetroButton>
                     <RetroButton type="button" variant="secondary" onClick={onEndSession} className="flex-1">
-                        End Session
+                        {t('endSession')}
                     </RetroButton>
                 </>
             )}
         </div>
-      </div>
-    </div>
+    </dialog>
   );
 };
 

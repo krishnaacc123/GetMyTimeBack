@@ -1,5 +1,5 @@
-export const DEFAULT_STUDY_TIME = 30;
-export const DEFAULT_BREAK_TIME = 10;
+export const DEFAULT_STUDY_TIME = 25;
+export const DEFAULT_BREAK_TIME = 5;
 export const STORAGE_KEY_LOGS = 'focus-retro-logs';
 export const STORAGE_KEY_SETTINGS = 'focus-retro-settings';
 export const STORAGE_KEY_TIMER_STATE = 'focus-retro-timer-state';
