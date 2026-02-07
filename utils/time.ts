@@ -21,6 +21,14 @@ export const formatAbsoluteTime = (timestamp: number): string => {
   return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
+export const formatDateRetro = (timestamp: number): string => {
+  const date = new Date(timestamp);
+  const day = date.getDate().toString().padStart(2, '0');
+  const month = date.toLocaleString('default', { month: 'short' });
+  const year = date.getFullYear().toString().slice(-2);
+  return `${day}-${month}-${year}`;
+};
+
 export const getDayKey = (timestamp: number): string => {
   return new Date(timestamp).toLocaleDateString();
 };

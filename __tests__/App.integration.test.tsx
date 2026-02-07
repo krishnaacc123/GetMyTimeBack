@@ -12,11 +12,6 @@ const AudioMock = vi.fn(() => ({
 }));
 vi.stubGlobal('Audio', AudioMock);
 
-vi.stubGlobal('Notification', {
-  requestPermission: vi.fn().mockResolvedValue('granted'),
-  permission: 'granted',
-});
-
 // Mock Navigator APIs
 Object.defineProperty(navigator, 'mediaSession', {
   value: {
@@ -57,6 +52,7 @@ describe('App Integration', () => {
   beforeEach(() => {
     localStorage.clear();
     vi.useFakeTimers();
+    vi.clearAllMocks();
   });
 
   afterEach(() => {
@@ -74,7 +70,7 @@ describe('App Integration', () => {
 
   it('renders the initial idle state correctly', () => {
     const { getByText } = renderApp();
-    expect(getByText('WorkSpan')).toBeInTheDocument();
+    expect(getByText('GetMyTimeBack')).toBeInTheDocument();
     expect(getByText('START WORKING')).toBeInTheDocument();
     // Default 25 min = 25:00
     expect(getByText('25')).toBeInTheDocument(); 
@@ -149,6 +145,29 @@ describe('App Integration', () => {
     expect(values.length).toBe(2); 
   });
 
+  it('auto-completes a session and shows summary with auto-renew countdown', () => {
+    const { getByText } = renderApp();
+    
+    // Start (25 min default = 1500 seconds)
+    getByText('START WORKING').click();
+    
+    // Advance time to 0
+    act(() => {
+      vi.advanceTimersByTime(1500 * 1000 + 100); 
+    });
+    
+    // Run any pending timeouts (the completeSession callback)
+    act(() => {
+      vi.runAllTimers();
+    });
+
+    // Expect Modal (Session Complete)
+    expect(getByText('Session Complete!')).toBeInTheDocument();
+    
+    // Expect "Starting in" (auto-renew countdown)
+    expect(getByText(/Starting in/)).toBeInTheDocument();
+  });
+
   it('opens and closes the settings modal', () => {
     const { getByText, getByLabelText, queryByText } = renderApp();
     
@@ -165,10 +184,12 @@ describe('App Integration', () => {
     expect(queryByText('Settings')).not.toBeInTheDocument();
   });
 
-  it('renders the footer with correct link', () => {
+  it('renders the footer with correct link and version', () => {
     const { getByText, getByLabelText } = renderApp();
     expect(getByText('Made with ❤️ by Krishna')).toBeInTheDocument();
     const githubLink = getByLabelText('GitHub Profile');
     expect(githubLink).toHaveAttribute('href', 'https://github.com/krishnaacc123');
+    // Check version presence (v1.1.0)
+    expect(getByText('v1.1.0')).toBeInTheDocument();
   });
 });

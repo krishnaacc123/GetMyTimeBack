@@ -1,5 +1,5 @@
 import React from 'react';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, fireEvent } from '@testing-library/react';
 import StatsBoard from './StatsBoard';
 import { LanguageProvider } from '../contexts/LanguageContext';
@@ -18,6 +18,16 @@ vi.mock('recharts', () => {
   };
 });
 
+// Mock useLogs
+const mockUseLogs = vi.fn();
+vi.mock('../contexts/LogsContext', async () => {
+  const actual = await vi.importActual('../contexts/LogsContext');
+  return {
+    ...actual,
+    useLogs: () => mockUseLogs(),
+  };
+});
+
 // Helper to generate mock logs
 const generateLogs = (count: number): StudyLog[] => {
   return Array.from({ length: count }).map((_, i) => ({
@@ -31,11 +41,20 @@ const generateLogs = (count: number): StudyLog[] => {
 
 describe('StatsBoard', () => {
   const defaultProps = {
-    logs: [],
     onClose: vi.fn(),
-    onClearLogs: vi.fn(),
-    onDeleteLog: vi.fn(),
   };
+
+  const defaultContext = {
+    logs: [] as StudyLog[],
+    todayStats: { totalSeconds: 0, sessions: 0 },
+    addLog: vi.fn(),
+    deleteLog: vi.fn(),
+    clearLogs: vi.fn(),
+  };
+
+  beforeEach(() => {
+    mockUseLogs.mockReturnValue(defaultContext);
+  });
 
   const renderWithContext = (ui: React.ReactElement) => {
     return render(<LanguageProvider>{ui}</LanguageProvider>);
@@ -46,27 +65,47 @@ describe('StatsBoard', () => {
     expect(getByText('No activity logged yet.')).toBeInTheDocument();
   });
 
+  it('renders "Session Activity" header', () => {
+    const { getByText } = renderWithContext(<StatsBoard {...defaultProps} />);
+    expect(getByText('Session Activity')).toBeInTheDocument();
+  });
+
+  it('prioritizes Work Today stats', () => {
+    const logs = generateLogs(1);
+    const contextWithStats = {
+      ...defaultContext,
+      logs,
+      todayStats: { totalSeconds: 1800, sessions: 1 }
+    };
+    mockUseLogs.mockReturnValue(contextWithStats);
+
+    const { getByText } = renderWithContext(<StatsBoard {...defaultProps} />);
+    // "Work Today" should be present
+    expect(getByText('Work Today')).toBeInTheDocument();
+  });
+
   it('renders logs and pagination controls when logs > 10', () => {
     const logs = generateLogs(15);
-    const { getByText, queryByText } = renderWithContext(<StatsBoard {...defaultProps} logs={logs} />);
+    mockUseLogs.mockReturnValue({ ...defaultContext, logs });
+
+    const { getByText } = renderWithContext(<StatsBoard {...defaultProps} />);
     
     // Should show first 10
     // Check for "Page 1 / 2"
     expect(getByText(/Page 1 \/ 2/)).toBeInTheDocument();
     
-    // Buttons
-    const nextBtn = getByText('Next →');
-    const prevBtn = getByText('← Prev');
-    
+    // Buttons (Next is Right Arrow)
+    const nextBtn = getByText('→');
     expect(nextBtn).toBeEnabled();
-    expect(prevBtn).toBeDisabled();
   });
 
   it('paginates correctly', () => {
     const logs = generateLogs(25); // 3 Pages
-    const { getByText } = renderWithContext(<StatsBoard {...defaultProps} logs={logs} />);
+    mockUseLogs.mockReturnValue({ ...defaultContext, logs });
+
+    const { getByText } = renderWithContext(<StatsBoard {...defaultProps} />);
     
-    const nextBtn = getByText('Next →');
+    const nextBtn = getByText('→');
     
     // Page 1 -> 2
     fireEvent.click(nextBtn);
@@ -78,34 +117,34 @@ describe('StatsBoard', () => {
     expect(nextBtn).toBeDisabled();
     
     // Page 3 -> 2
-    const prevBtn = getByText('← Prev');
+    const prevBtn = getByText('←');
     expect(prevBtn).toBeEnabled();
     fireEvent.click(prevBtn);
     expect(getByText(/Page 2 \/ 3/)).toBeInTheDocument();
   });
 
-  it('filters logs correctly', () => {
-    const logs: StudyLog[] = [
-        { id: '1', startTime: 0, durationSeconds: 60, type: 'STUDY', timestamp: 0 },
-        { id: '2', startTime: 0, durationSeconds: 60, type: 'BREAK', timestamp: 0 }
-    ];
-    
-    const { getByText, queryByText, getAllByText } = renderWithContext(<StatsBoard {...defaultProps} logs={logs} />);
-    
-    // Initial ALL
-    expect(getByText('WORK')).toBeInTheDocument();
-    expect(getByText('BREAK', { selector: 'p' })).toBeInTheDocument(); // Selector needed to differentiate from Filter button text if ambiguous
-    
-    // Filter BREAK
-    const breakFilterBtn = getAllByText('BREAK')[0]; // The button is likely first or we can use specific selectors
-    fireEvent.click(breakFilterBtn);
-    
-    // Should only see BREAK log
-    // WORK log text shouldn't be in the list items (only in the header 'WORK THIS WEEK' etc)
-    // We can check if the row "WORK" is gone.
-    // A simpler check is to count items.
-    
-    // The filter buttons are: ALL, WORK, BREAK.
-    // The logs have text: WORK, BREAK.
+  it('groups logs with the same sessionId', () => {
+     const logs: StudyLog[] = [
+        { id: '1', sessionId: 'sess-abc', startTime: Date.now(), durationSeconds: 60, type: 'STUDY', timestamp: Date.now() },
+        { id: '2', sessionId: 'sess-abc', startTime: Date.now() + 60000, durationSeconds: 60, type: 'BREAK', timestamp: Date.now() + 60000 }
+     ];
+     mockUseLogs.mockReturnValue({ ...defaultContext, logs });
+     
+     const { container } = renderWithContext(<StatsBoard {...defaultProps} />);
+     
+     // Look for the expandable group button
+     const groupBtn = container.querySelector('button.w-full.text-left');
+     expect(groupBtn).toBeInTheDocument();
+     
+     // The individual log cards shouldn't be visible yet
+     const logCards = container.querySelectorAll('.p-4.bg-retro-paper .relative.group');
+     expect(logCards.length).toBe(0);
+     
+     // Expand
+     fireEvent.click(groupBtn!);
+     
+     // Now 2 logs should be visible
+     const visibleCards = container.querySelectorAll('.p-4.bg-retro-paper .relative.group');
+     expect(visibleCards.length).toBe(2);
   });
 });

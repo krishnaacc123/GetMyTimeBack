@@ -3,50 +3,111 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>WorkSpan</title>
-    <link rel="manifest" href="/manifest.json">
-    <link rel="icon" href="https://picsum.photos/64/64" />
     
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Comic+Neue:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Google Site Verification -->
+    <meta name="google-site-verification" content="YCbKQ0c6cZ6KjwIpICaS_Gz11gQM_0-CwHOq7sxWZTY" />
+
+    <!-- Primary Meta Tags -->
+    <title>GetMyTimeBack - Simple Focus Timer & Work Log</title>
+    <meta name="title" content="GetMyTimeBack - Simple Focus Timer & Work Log" />
+    <meta name="description" content="GetMyTimeBack is a simple log app to track your focus hours. Use our retro-styled study timer to manage work sessions, log activity, and boost productivity." />
+    <meta name="keywords" content="log work, simple log app, focus hour, study timer, work log, time tracker, pomodoro timer, productivity tool, focus tracker" />
+    <meta name="theme-color" content="#fdf6e3" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://workspan.app/" />
+    <meta property="og:title" content="GetMyTimeBack - Simple Focus Timer & Work Log" />
+    <meta property="og:description" content="Track your focus hours with this simple log app. A minimalistic, retro-styled timer to help you log work and stay productive." />
+    <meta property="og:image" content="https://picsum.photos/1200/630" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://workspan.app/" />
+    <meta property="twitter:title" content="GetMyTimeBack - Simple Focus Timer & Work Log" />
+    <meta property="twitter:description" content="Track your focus hours with this simple log app. A minimalistic, retro-styled timer to help you log work and stay productive." />
+    <meta property="twitter:image" content="https://picsum.photos/1200/630" />
+
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 22h14M5 2h14'/%3E%3Cpath d='M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22'/%3E%3Cpath d='M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2'/%3E%3C/svg%3E" />
     
     <script>
-      tailwind.config = {
-        darkMode: 'class',
-        theme: {
-          extend: {
-            fontFamily: {
-              display: ['Bangers', 'cursive'],
-              body: ['Comic Neue', 'cursive'],
-            },
-            colors: {
-              retro: {
-                paper: '#fdf6e3',
-                dark: '#1a1a1a',
-                yellow: '#ffeb3b',
-                pink: '#ff80ab',
-                blue: '#80d8ff',
-                green: '#b9f6ca',
-              }
-            },
-            boxShadow: {
-              'retro': '4px 4px 0px 0px rgba(0,0,0,1)',
-              'retro-hover': '2px 2px 0px 0px rgba(0,0,0,1)',
-            },
-            animation: {
-              'wiggle-slow': 'wiggle 3s ease-in-out infinite',
-            },
-            keyframes: {
-              wiggle: {
-                '0%, 100%': { transform: 'rotate(-3deg)' },
-                '50%': { transform: 'rotate(3deg)' },
+      tailwind = {
+        config: {
+          darkMode: 'class',
+          theme: {
+            extend: {
+              fontFamily: {
+                display: ['Bangers', 'cursive'],
+                body: ['Comic Neue', 'cursive'],
+              },
+              colors: {
+                retro: {
+                  paper: '#fdf6e3',
+                  dark: '#1a1a1a',
+                  yellow: '#ffeb3b',
+                  pink: '#ff80ab',
+                  blue: '#80d8ff',
+                  green: '#b9f6ca',
+                }
+              },
+              boxShadow: {
+                'retro': '4px 4px 0px 0px rgba(0,0,0,1)',
+                'retro-hover': '2px 2px 0px 0px rgba(0,0,0,1)',
+              },
+              animation: {
+                'wiggle-slow': 'wiggle 3s ease-in-out infinite',
+              },
+              keyframes: {
+                wiggle: {
+                  '0%, 100%': { transform: 'rotate(-3deg)' },
+                  '50%': { transform: 'rotate(3deg)' },
+                }
               }
             }
           }
         }
       }
     </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Comic+Neue:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- Structured Data for Software Application -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "GetMyTimeBack",
+      "url": "https://workspan.app/",
+      "description": "A simple log app to track focus hours and work sessions.",
+      "applicationCategory": "ProductivityApplication",
+      "operatingSystem": "Web",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "featureList": "Focus Timer, Work Log, Activity Statistics, Break Timer"
+    }
+    </script>
+
     <style>
+      /* Force body background to prevent black screen in dark mode default */
+      body {
+        background-color: #fdf6e3;
+        color: black;
+        font-family: 'Comic Neue', cursive;
+      }
+      
+      /* Enforce Retro Fonts via CSS as safety net */
+      h1, h2, h3, .font-display {
+        font-family: 'Bangers', cursive !important;
+        letter-spacing: 0.05em;
+      }
+
+      .font-body {
+        font-family: 'Comic Neue', cursive !important;
+      }
+
       /* Custom Scrollbar for that retro feel */
       ::-webkit-scrollbar {
         width: 12px;
@@ -62,6 +123,16 @@
       ::-webkit-scrollbar-thumb:hover {
         background: #333;
       }
+
+      /* Fallback CSS for Retro Theme Colors (Safety Net) */
+      .bg-retro-paper { background-color: #fdf6e3; }
+      .bg-retro-yellow { background-color: #ffeb3b; }
+      .bg-retro-pink { background-color: #ff80ab; }
+      .bg-retro-blue { background-color: #80d8ff; }
+      .bg-retro-green { background-color: #b9f6ca; }
+      .text-retro-yellow { color: #ffeb3b; }
+      
+      .shadow-retro { box-shadow: 4px 4px 0px 0px rgba(0,0,0,1); }
     </style>
     <script type="importmap">
 {

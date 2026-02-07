@@ -1,7 +1,8 @@
 
+
 import { test, expect } from '@playwright/test';
 
-test.describe('WorkSpan E2E', () => {
+test.describe('GetMyTimeBack E2E', () => {
   test.beforeEach(async ({ page }) => {
     // Assuming the app is running on localhost:3000
     await page.goto('/');
@@ -9,7 +10,7 @@ test.describe('WorkSpan E2E', () => {
 
   test('User can start a session, see the timer, and stop it', async ({ page }) => {
     // 1. Initial State
-    await expect(page.getByText('WorkSpan')).toBeVisible();
+    await expect(page.getByText('GetMyTimeBack')).toBeVisible();
     await expect(page.getByText('START WORKING')).toBeVisible();
 
     // 2. Start Timer
@@ -119,16 +120,26 @@ test.describe('WorkSpan E2E', () => {
     // 8. Verify Logs in Stats
     await page.getByLabel('View Statistics').click();
 
-    // We expect 3 logs:
-    // 1. First Break (triggered by Resume)
-    // 2. Study Session (aggregated, triggered by End Session from Break)
-    // 3. Second Break (triggered by End Session from Break)
-    // IMPORTANT: Wait for dialog animation
-    const recentActivityRows = page.locator('.space-y-3 .bg-white');
-    await expect(recentActivityRows).toHaveCount(3);
+    // We expect the logs to be grouped in a SessionGroup.
+    // By default expanded is false.
+    // We need to click the session group header to expand it.
+    
+    // Find the toggle button. It contains the time range and stats.
+    const sessionGroupBtn = page.locator('button.w-full.text-left');
+    await expect(sessionGroupBtn).toBeVisible();
+    await sessionGroupBtn.click();
+    
+    // Now logs should be visible.
+    // We expect 4 logs inside:
+    // 1. Study (Start -> Break)
+    // 2. Break (Break -> Resume)
+    // 3. Study (Resume -> Break)
+    // 4. Break (Break -> End)
+    const logCards = page.locator('.p-4.bg-retro-paper .relative.group');
+    await expect(logCards).toHaveCount(4);
     
     // Verify we have both types
-    await expect(page.getByText('WORK', { exact: true }).first()).toBeVisible();
-    await expect(page.getByText('BREAK', { exact: true }).first()).toBeVisible();
+    await expect(logCards.filter({ hasText: 'WORK' }).first()).toBeVisible();
+    await expect(logCards.filter({ hasText: 'BREAK' }).first()).toBeVisible();
   });
 });

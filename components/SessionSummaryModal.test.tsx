@@ -3,14 +3,19 @@ import { describe, it, expect, vi } from 'vitest';
 import { render } from '@testing-library/react';
 import SessionSummaryModal from './SessionSummaryModal';
 import { LanguageProvider } from '../contexts/LanguageContext';
+import { SummaryData } from '../types';
 
 describe('SessionSummaryModal', () => {
+  const defaultData: SummaryData = {
+    type: 'STUDY',
+    duration: 120, // seconds
+    finishedNaturally: true
+  };
+
   const defaultProps = {
-    type: 'STUDY' as const,
-    durationSeconds: 120,
+    data: defaultData,
     onNext: vi.fn(),
     onEndSession: vi.fn(),
-    finishedNaturally: true
   };
 
   const renderWithContext = (ui: React.ReactElement) => {
@@ -25,8 +30,9 @@ describe('SessionSummaryModal', () => {
   });
 
   it('renders single break summary correctly', () => {
+    const data: SummaryData = { ...defaultData, type: 'BREAK', duration: 60 };
     const { getByText } = renderWithContext(
-      <SessionSummaryModal {...defaultProps} type="BREAK" durationSeconds={60} />
+      <SessionSummaryModal {...defaultProps} data={data} />
     );
     expect(getByText('Break Time Over')).toBeInTheDocument();
     expect(getByText('Break Duration')).toBeInTheDocument();
@@ -34,12 +40,16 @@ describe('SessionSummaryModal', () => {
   });
 
   it('renders dual summary (Work + Break) correctly', () => {
-    const { getByText, getAllByText } = renderWithContext(
+    const data: SummaryData = {
+        type: 'STUDY', 
+        studyDuration: 300, 
+        duration: 60, 
+        finishedNaturally: true
+    };
+    const { getByText } = renderWithContext(
       <SessionSummaryModal 
         {...defaultProps} 
-        type="STUDY" // Main type context
-        studyDuration={300} // 5m work
-        durationSeconds={60} // 1m break
+        data={data}
       />
     );
 

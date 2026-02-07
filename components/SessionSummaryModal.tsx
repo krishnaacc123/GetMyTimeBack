@@ -3,31 +3,30 @@ import RetroButton from './RetroButton';
 import { formatDuration } from '../utils/time';
 import { getRandomQuote } from '../utils/quotes';
 import { useLanguage } from '../contexts/LanguageContext';
+import { SummaryData } from '../types';
 
 interface SessionSummaryModalProps {
-  type: 'STUDY' | 'BREAK';
-  durationSeconds: number;
-  studyDuration?: number;
+  data: SummaryData;
   onNext: () => void;
   onEndSession: () => void;
-  autoStart?: boolean;
-  finishedNaturally: boolean;
 }
 
 const SessionSummaryModal: React.FC<SessionSummaryModalProps> = ({ 
-  type, 
-  durationSeconds, 
-  studyDuration,
+  data,
   onNext, 
   onEndSession,
-  autoStart = false,
-  finishedNaturally 
 }) => {
+  const { type, duration, studyDuration, finishedNaturally, breakStartTime } = data;
+  const autoStart = type === 'STUDY' && finishedNaturally;
+
   const { t } = useLanguage();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [quote, setQuote] = useState('');
   const [countdown, setCountdown] = useState(5);
+  const [displayedDuration, setDisplayedDuration] = useState(duration);
+  const [isProcessing, setIsProcessing] = useState(false);
   const timerRef = useRef<number | null>(null);
+  const overtimeIntervalRef = useRef<number | null>(null);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -38,12 +37,38 @@ const SessionSummaryModal: React.FC<SessionSummaryModalProps> = ({
 
   const handleCancel = (e: React.SyntheticEvent) => {
     e.preventDefault();
-    onEndSession();
+    if (!isProcessing) {
+        setIsProcessing(true);
+        onEndSession();
+    }
   };
 
   useEffect(() => {
     setQuote(getRandomQuote());
   }, []);
+
+  // Break Overtime Counter
+  useEffect(() => {
+    if (type === 'BREAK' && finishedNaturally && breakStartTime) {
+      overtimeIntervalRef.current = window.setInterval(() => {
+        const now = Date.now();
+        // Calculate overtime elapsed
+        const elapsed = Math.floor((now - breakStartTime) / 1000);
+        // Displayed time = Total Break Time So Far (duration) + Overtime (elapsed)
+        setDisplayedDuration(duration + elapsed);
+      }, 1000);
+    } else {
+        // Ensure static display is up to date if not counting and clear interval
+        if (overtimeIntervalRef.current) {
+            clearInterval(overtimeIntervalRef.current);
+            overtimeIntervalRef.current = null;
+        }
+        setDisplayedDuration(duration);
+    }
+    return () => {
+      if (overtimeIntervalRef.current) clearInterval(overtimeIntervalRef.current);
+    };
+  }, [type, finishedNaturally, breakStartTime, duration]);
 
   // Auto-start logic
   useEffect(() => {
@@ -52,7 +77,10 @@ const SessionSummaryModal: React.FC<SessionSummaryModalProps> = ({
         setCountdown((prev) => {
           if (prev <= 1) {
             if (timerRef.current) clearInterval(timerRef.current);
-            onNext(); // Trigger next session automatically
+            if (!isProcessing) {
+                setIsProcessing(true);
+                onNext(); // Trigger next session automatically
+            }
             return 0;
           }
           return prev - 1;
@@ -62,11 +90,21 @@ const SessionSummaryModal: React.FC<SessionSummaryModalProps> = ({
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [autoStart, onNext]);
+  }, [autoStart, onNext, isProcessing]);
 
   const handleManualNext = () => {
+    if (isProcessing) return;
+    setIsProcessing(true);
     if (timerRef.current) clearInterval(timerRef.current);
+    if (overtimeIntervalRef.current) clearInterval(overtimeIntervalRef.current);
     onNext();
+  };
+  
+  const handleManualEnd = () => {
+    if (isProcessing) return;
+    setIsProcessing(true);
+    if (overtimeIntervalRef.current) clearInterval(overtimeIntervalRef.current);
+    onEndSession();
   };
 
   const getButtonText = () => {
@@ -78,8 +116,11 @@ const SessionSummaryModal: React.FC<SessionSummaryModalProps> = ({
   };
 
   const getTitle = () => {
+    // Priority: If it is a break and finished naturally, explicitly say "Break Time Over"
+    // This fixes the issue where "Session Complete" was showing due to accumulated work time
+    if (type === 'BREAK' && finishedNaturally) return t('breakOver');
+    
     if (studyDuration && studyDuration > 0) return t('sessionComplete');
-    if (type === 'BREAK') return t('breakOver');
     return t('sessionComplete');
   };
 
@@ -94,7 +135,6 @@ const SessionSummaryModal: React.FC<SessionSummaryModalProps> = ({
       onCancel={handleCancel}
       className="bg-white border-4 border-black shadow-retro p-8 w-full max-w-md text-center transform scale-100 animate-in zoom-in-95 duration-300 relative overflow-hidden backdrop:bg-black/80 backdrop:backdrop-blur-sm m-auto open:block"
     >
-        {/* Confetti-like decoration circles */}
         <div className="absolute top-2 left-2 w-4 h-4 rounded-full bg-retro-yellow border-2 border-black" />
         <div className="absolute top-4 right-6 w-6 h-6 rounded-full bg-retro-pink border-2 border-black" />
         <div className="absolute bottom-4 left-6 w-3 h-3 rounded-full bg-retro-blue border-2 border-black" />
@@ -108,22 +148,24 @@ const SessionSummaryModal: React.FC<SessionSummaryModalProps> = ({
             <div className="flex justify-center gap-4 my-6">
                 <div className="flex-1 bg-retro-paper border-2 border-black p-2">
                     <p className="text-gray-500 uppercase text-xs font-bold tracking-widest mb-1">{t('timeWorked')}</p>
-                    <p className="text-4xl font-display">{formatDuration(studyDuration)}</p>
+                    <p className="text-4xl font-display text-black">{formatDuration(studyDuration)}</p>
                 </div>
                 <div className="flex-1 bg-white border-2 border-black p-2">
                     <p className="text-gray-500 uppercase text-xs font-bold tracking-widest mb-1">{t('breakDuration')}</p>
-                    <p className="text-4xl font-display">{formatDuration(durationSeconds)}</p>
+                    <p className="text-4xl font-display text-black">{formatDuration(displayedDuration)}</p>
                 </div>
             </div>
         ) : (
             <div className="my-6">
               <p className="text-gray-500 uppercase text-sm font-bold tracking-widest mb-1">{getLabel()}</p>
-              <p className="text-6xl font-display">{formatDuration(durationSeconds)}</p>
+              <div className="relative inline-block">
+                <p className="text-6xl font-display tabular-nums text-black">{formatDuration(displayedDuration)}</p>
+              </div>
             </div>
         )}
 
         <div className="bg-retro-paper border-2 border-black p-4 mb-6 rotate-1">
-          <p className="font-body italic text-lg">"{quote}"</p>
+          <p className="font-body italic text-lg text-black">"{quote}"</p>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-4 w-full">
@@ -131,8 +173,9 @@ const SessionSummaryModal: React.FC<SessionSummaryModalProps> = ({
                 <RetroButton 
                     type="button" 
                     variant="primary" 
-                    onClick={onEndSession} 
+                    onClick={handleManualEnd} 
                     className="flex-1"
+                    disabled={isProcessing}
                 >
                     {t('gotIt')}
                 </RetroButton>
@@ -143,10 +186,17 @@ const SessionSummaryModal: React.FC<SessionSummaryModalProps> = ({
                         variant="primary" 
                         onClick={handleManualNext} 
                         className="flex-1 transition-all"
+                        disabled={isProcessing}
                     >
                         {getButtonText()}
                     </RetroButton>
-                    <RetroButton type="button" variant="secondary" onClick={onEndSession} className="flex-1">
+                    <RetroButton 
+                        type="button" 
+                        variant="secondary" 
+                        onClick={handleManualEnd} 
+                        className="flex-1"
+                        disabled={isProcessing}
+                    >
                         {t('endSession')}
                     </RetroButton>
                 </>

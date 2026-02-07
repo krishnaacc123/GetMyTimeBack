@@ -11,26 +11,31 @@ const RetroButton: React.FC<RetroButtonProps> = ({
   ...props 
 }) => {
   // Added focus:outline-none focus:ring-4 focus:ring-retro-blue focus:ring-offset-2 for accessibility
-  const baseStyle = "font-display text-xl px-6 py-3 border-4 border-black shadow-retro active:translate-x-[2px] active:translate-y-[2px] active:shadow-retro-hover transition-all duration-100 uppercase tracking-wider focus:outline-none focus:ring-4 focus:ring-retro-blue focus:ring-offset-2";
+  const baseStyle = "font-display text-xl px-6 py-3 border-4 border-black shadow-retro transition-all duration-100 uppercase tracking-wider focus:outline-none focus:ring-4 focus:ring-retro-blue focus:ring-offset-2";
   
+  // Interaction styles: only apply hover/active if NOT disabled
+  const interactionStyle = props.disabled 
+    ? "opacity-50 cursor-not-allowed active:translate-x-0 active:translate-y-0 active:shadow-retro" 
+    : "active:translate-x-[2px] active:translate-y-[2px] active:shadow-retro-hover";
+
   let colorStyle = "";
   switch (variant) {
     case 'primary':
-      colorStyle = "bg-retro-yellow text-black hover:bg-yellow-300";
+      colorStyle = props.disabled ? "bg-retro-yellow text-black" : "bg-retro-yellow text-black hover:bg-yellow-300";
       break;
     case 'secondary':
-      colorStyle = "bg-white text-black hover:bg-gray-100";
+      colorStyle = props.disabled ? "bg-white text-black" : "bg-white text-black hover:bg-gray-100";
       break;
     case 'danger':
-      colorStyle = "bg-retro-pink text-white hover:bg-pink-400";
+      colorStyle = props.disabled ? "bg-retro-pink text-white" : "bg-retro-pink text-white hover:bg-pink-400";
       break;
     case 'success':
-      colorStyle = "bg-retro-green text-black hover:bg-green-300";
+      colorStyle = props.disabled ? "bg-retro-green text-black" : "bg-retro-green text-black hover:bg-green-300";
       break;
   }
 
   return (
-    <button className={`${baseStyle} ${colorStyle} ${className}`} {...props}>
+    <button className={`${baseStyle} ${interactionStyle} ${colorStyle} ${className}`} {...props}>
       {children}
     </button>
   );
