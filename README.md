@@ -2,8 +2,6 @@
 
 A simple, retro-styled focus timer and work log to track your focus hours and manage study sessions. Start a session, take breaks, and see your activity over time—all in the browser with no account required.
 
-![GetMyTimeBack](https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6)
-
 ## Features
 
 - **Focus timer** — Set a target duration (default 25 min), start working, and get notified when time’s up.
