@@ -1,6 +1,6 @@
 # GetMyTimeBack
 
-A simple, retro-styled focus timer and work log to track your focus hours and manage study sessions. Start a session, take breaks, and see your activity over time—all in the browser with no account required.
+A simple, retro-styled focus timer and work log to track your focus hours and manage study sessions for desktop. Start a session, take breaks, and see your activity over time—all in the browser with no account required.
 
 ## Features
 
