@@ -11,7 +11,7 @@ type DateOption = 'TODAY' | 'YESTERDAY' | 'DAY_BEFORE';
 
 const ManualLogModal: React.FC<ManualLogModalProps> = ({ onClose }) => {
   const { t } = useLanguage();
-  const { addLog, logs } = useLogs();
+  const { addLog } = useLogs();
   const dialogRef = useRef<HTMLDialogElement>(null);
   
   const [dateOption, setDateOption] = useState<DateOption>('TODAY');
@@ -34,7 +34,6 @@ const ManualLogModal: React.FC<ManualLogModalProps> = ({ onClose }) => {
   const handleSave = () => {
     if (!startTime || !endTime) return;
 
-    // Construct dates based on selection
     const date = new Date();
     date.setSeconds(0);
     date.setMilliseconds(0);
@@ -56,7 +55,6 @@ const ManualLogModal: React.FC<ManualLogModalProps> = ({ onClose }) => {
 
     const now = new Date();
     
-    // Validation
     if (endDate <= startDate) {
         setError(t('invalidTimeError'));
         return;
@@ -70,14 +68,8 @@ const ManualLogModal: React.FC<ManualLogModalProps> = ({ onClose }) => {
     const startMs = startDate.getTime();
     const endMs = endDate.getTime();
 
-    // Removed overlap check logic here to allow overlapping entries
-
     const durationSeconds = (endMs - startMs) / 1000;
     
-    // Add Log using existing context logic
-    // We pass explicit sessionId to group this as a single session if we want, 
-    // or just let it be a single log. Let's make it a unique session.
-    // isManual = true
     addLog('STUDY', durationSeconds, endMs, crypto.randomUUID(), true);
     
     onClose();

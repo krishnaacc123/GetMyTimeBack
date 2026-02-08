@@ -14,7 +14,6 @@ interface StatsBoardProps {
 
 type TimeRange = 'TODAY' | 'YESTERDAY' | 'LAST_3_DAYS' | 'LAST_7_DAYS' | 'THIS_WEEK' | 'THIS_MONTH' | 'ALL';
 
-// --- LogCard Component ---
 interface LogCardProps {
     log: StudyLog;
     deleteLog: (id: string) => void;
@@ -22,7 +21,6 @@ interface LogCardProps {
 }
 
 const LogCard: React.FC<LogCardProps> = ({ log, deleteLog, idx }) => {
-    const { t } = useLanguage();
     const duration = log.durationSeconds ?? ((log as any).durationMinutes * 60);
     const endTime = log.startTime + (duration * 1000);
     const rotation = idx % 2 === 0 ? 'rotate-1' : '-rotate-1';
@@ -59,7 +57,6 @@ const LogCard: React.FC<LogCardProps> = ({ log, deleteLog, idx }) => {
     );
 };
 
-// --- Session Group Component ---
 interface SessionGroupProps {
     sessionId?: string;
     logs: StudyLog[];
@@ -70,17 +67,14 @@ const SessionGroup: React.FC<SessionGroupProps> = ({ sessionId, logs, deleteLog 
     const { t } = useLanguage();
     const [expanded, setExpanded] = useState(false);
 
-    // Calculate session totals
     const totalWork = logs.filter(l => l.type === 'STUDY').reduce((acc, l) => acc + (l.durationSeconds ?? 0), 0);
     const totalBreak = logs.filter(l => l.type === 'BREAK').reduce((acc, l) => acc + (l.durationSeconds ?? 0), 0);
     
-    const startTime = logs[logs.length - 1].startTime; // Logs are typically reverse chronological
+    const startTime = logs[logs.length - 1].startTime; 
     const endTime = logs[0].startTime + (logs[0].durationSeconds ?? 0) * 1000;
     
-    // Check if session is manual (if any log in session is manual)
     const isManual = logs.some(l => l.isManual);
 
-    // If no sessionId (legacy logs), just render them as single cards without a group wrapper
     if (!sessionId) {
         return (
             <>
@@ -92,25 +86,27 @@ const SessionGroup: React.FC<SessionGroupProps> = ({ sessionId, logs, deleteLog 
     }
 
     return (
-        <div className="col-span-full border-4 border-black bg-white shadow-retro mb-3 transition-all">
+        <div className="col-span-full border-4 border-black bg-white shadow-retro mb-3 transition-all relative overflow-hidden">
             <button 
                 onClick={() => setExpanded(!expanded)}
-                className="w-full text-left p-3 flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 hover:bg-gray-50 focus:outline-none focus:ring-4 focus:ring-retro-blue focus:ring-inset"
+                className="w-full text-left p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 hover:bg-gray-50 focus:outline-none focus:ring-4 focus:ring-retro-blue focus:ring-inset relative z-0"
             >
-                {/* Left: Time only */}
-                <div className="flex items-center gap-3">
-                    {isManual && (
-                       <span className="bg-black text-white text-[9px] px-1.5 py-0.5 rounded-sm font-bold uppercase tracking-wider shadow-[1px_1px_0px_0px_rgba(0,0,0,0.2)]">
-                           {t('manualBadge')}
-                       </span>
-                    )}
-                    <span className="font-bold text-xs font-mono tracking-wide text-gray-600 border-b-2 border-black/10 pb-0.5">
-                        {formatAbsoluteTime(startTime)} - {formatAbsoluteTime(endTime)}
-                    </span>
+                {/* Left: Time and Tag */}
+                <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-3">
+                        {isManual && (
+                        <span className="bg-black text-white text-[9px] px-1.5 py-0.5 rounded-sm font-bold uppercase tracking-wider shadow-[1px_1px_0px_0px_rgba(0,0,0,0.2)]">
+                            {t('manualBadge')}
+                        </span>
+                        )}
+                        <span className="font-bold text-xs font-mono tracking-wide text-gray-600 border-b-2 border-black/10 pb-0.5">
+                            {formatAbsoluteTime(startTime)} - {formatAbsoluteTime(endTime)}
+                        </span>
+                    </div>
                 </div>
 
                 {/* Right: Stats and Arrow */}
-                <div className="flex items-center gap-3 sm:gap-6 ml-auto sm:ml-0">
+                <div className="flex items-center gap-3 sm:gap-6 w-full sm:w-auto justify-between sm:justify-end">
                      <div className="flex gap-3">
                          <div className="flex items-baseline gap-1 bg-retro-yellow/20 px-2 py-1 rounded border border-black/10">
                             <span className="text-[10px] font-bold uppercase opacity-60 text-black">Work</span>
@@ -131,10 +127,12 @@ const SessionGroup: React.FC<SessionGroupProps> = ({ sessionId, logs, deleteLog 
             </button>
 
             {expanded && (
-                <div className="p-4 bg-retro-paper border-t-4 border-black grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                     {[...logs].reverse().map((log, idx) => (
-                        <LogCard key={log.id} log={log} deleteLog={deleteLog} idx={idx} />
-                    ))}
+                <div className="p-4 bg-retro-paper border-t-4 border-black">
+                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                        {[...logs].reverse().map((log, idx) => (
+                            <LogCard key={log.id} log={log} deleteLog={deleteLog} idx={idx} />
+                        ))}
+                     </div>
                 </div>
             )}
         </div>
@@ -170,7 +168,6 @@ const StatsBoard: React.FC<StatsBoardProps> = ({ onClose }) => {
   const filteredLogs = useMemo(() => {
     let sorted = [...logs].sort((a, b) => b.timestamp - a.timestamp);
     
-    // Time Filter logic
     const now = new Date();
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
 
@@ -184,9 +181,9 @@ const StatsBoard: React.FC<StatsBoardProps> = ({ onClose }) => {
             const startOfYesterday = startOfToday - 86400000;
             return logTime >= startOfYesterday && logTime < startOfToday;
           case 'LAST_3_DAYS':
-            return logTime >= startOfToday - (2 * 86400000); // Today + 2 previous days
+            return logTime >= startOfToday - (2 * 86400000); 
           case 'LAST_7_DAYS':
-            return logTime >= startOfToday - (6 * 86400000); // Today + 6 previous days
+            return logTime >= startOfToday - (6 * 86400000); 
           case 'THIS_WEEK':
             return getWeekKey(logTime) === getWeekKey(now.getTime());
           case 'THIS_MONTH':
@@ -200,7 +197,6 @@ const StatsBoard: React.FC<StatsBoardProps> = ({ onClose }) => {
     return sorted;
   }, [logs, timeRange]);
 
-  // Group logs by Day for Pagination
   const { dateKeys, logsByDate } = useMemo(() => {
     const groups: Record<string, StudyLog[]> = {};
     const keys: string[] = [];
@@ -231,7 +227,6 @@ const StatsBoard: React.FC<StatsBoardProps> = ({ onClose }) => {
       return logsByDate[dateKey] || [];
   }, [currentPage, dateKeys, logsByDate, totalPages]);
   
-  // Group current page logs by Session ID
   const groupedSessionLogs = useMemo(() => {
       const finalGroups: { sessionId?: string, items: StudyLog[] }[] = [];
       const seenSessions = new Set<string>();
@@ -240,11 +235,9 @@ const StatsBoard: React.FC<StatsBoardProps> = ({ onClose }) => {
           if (log.sessionId) {
               if (!seenSessions.has(log.sessionId)) {
                   seenSessions.add(log.sessionId);
-                  // Find all logs for this session on this day
                   const sessionItems = currentDayLogs.filter(l => l.sessionId === log.sessionId);
                   finalGroups.push({ sessionId: log.sessionId, items: sessionItems });
               }
-              // If seen, skip, because we added the group already
           } else {
               finalGroups.push({ items: [log] });
           }
@@ -261,7 +254,6 @@ const StatsBoard: React.FC<StatsBoardProps> = ({ onClose }) => {
           const date = new Date(timestamp);
           const now = new Date();
           
-          // Calculate total work duration for this day (page)
           const totalWorkSeconds = currentDayLogs
             .filter(l => l.type === 'STUDY')
             .reduce((acc, l) => {
@@ -271,12 +263,10 @@ const StatsBoard: React.FC<StatsBoardProps> = ({ onClose }) => {
             
           const durationStr = formatDuration(totalWorkSeconds);
           
-          // Check Today
           if (date.toDateString() === now.toDateString()) {
               return `${t('filterToday')} - ${dateStr} (${durationStr})`;
           }
           
-          // Check Yesterday
           const yesterday = new Date(now);
           yesterday.setDate(yesterday.getDate() - 1);
           if (date.toDateString() === yesterday.toDateString()) {
@@ -316,7 +306,6 @@ const StatsBoard: React.FC<StatsBoardProps> = ({ onClose }) => {
       if (logYear === yearKey) yearSec += duration;
     });
 
-    // Count unique sessions (all time)
     const uniqueSessions = new Set<string>();
     let legacyCount = 0;
     studyLogs.forEach(log => {
@@ -384,15 +373,12 @@ const StatsBoard: React.FC<StatsBoardProps> = ({ onClose }) => {
         </div>
         
         <div className="flex-1 p-6 overflow-y-auto bg-retro-paper transition-colors">
-          {/* Global Stats */}
           <div className="flex flex-col gap-4 mb-8">
-             {/* Priority: Work Today */}
              <div className="bg-white border-4 border-black p-6 text-center shadow-retro transform hover:scale-[1.01] transition-transform">
                 <p className="text-lg font-bold uppercase tracking-[0.2em] text-gray-500 mb-2">{t('workToday')}</p>
                 <p className="text-6xl font-display stroke-black text-black">{stats.today}</p>
              </div>
 
-             {/* Secondary Stats */}
              <div className="grid grid-cols-3 gap-4">
                  <div className="bg-white border-2 border-black p-2 text-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                     <p className="text-[10px] sm:text-xs font-bold uppercase text-gray-500 truncate">{t('workThisWeek')}</p>
@@ -409,7 +395,6 @@ const StatsBoard: React.FC<StatsBoardProps> = ({ onClose }) => {
              </div>
           </div>
 
-          {/* Chart */}
           <div className="bg-retro-paper border-4 border-black p-4 shadow-retro mb-8 h-64 text-black relative flex flex-col">
              <div className="flex justify-between items-center mb-2 relative z-10 pl-2 pr-2">
                  <p className="text-sm font-bold uppercase">{t('past7Days')}</p>
@@ -451,20 +436,17 @@ const StatsBoard: React.FC<StatsBoardProps> = ({ onClose }) => {
                      }}
                      cursor={{fill: 'rgba(0,0,0,0.05)'}}
                    />
-                   <Bar dataKey="workHours" name="Work" stackId="a" fill="#ffeb3b" stroke="#000" strokeWidth={2} />
-                   <Bar dataKey="breakHours" name="Break" stackId="a" fill="#b9f6ca" stroke="#000" strokeWidth={2} />
+                   <Bar dataKey="workHours" name="Work" fill="#ffeb3b" stroke="#000" strokeWidth={2} />
+                   <Bar dataKey="breakHours" name="Break" fill="#b9f6ca" stroke="#000" strokeWidth={2} />
                  </BarChart>
                </ResponsiveContainer>
              </div>
           </div>
 
-          {/* Notice Board / Logs */}
           <div className="mb-6 relative">
-             <div className="bg-[#5c4033] absolute -inset-4 opacity-10 rounded-xl" /> {/* Corkboard feel bg */}
+             <div className="bg-[#5c4033] absolute -inset-4 opacity-10 rounded-xl" /> 
              
-             {/* Filter Bar */}
              <div className="flex flex-col xl:flex-row justify-between items-center mb-4 relative z-10 border-b-4 border-black/10 pb-4 gap-4">
-                {/* Header with Session Badge Style */}
                 <div className="transform -rotate-1">
                     <h3 className="text-3xl font-display bg-black text-white px-4 py-1 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)] leading-none m-0 tracking-wide">
                         {t('recentActivity')}
@@ -472,11 +454,9 @@ const StatsBoard: React.FC<StatsBoardProps> = ({ onClose }) => {
                 </div>
                 
                 <div className="flex flex-wrap gap-2 items-center justify-center sm:justify-end w-full xl:w-auto">
-                    {/* Time Filters */}
                     <TimeButton range="TODAY" label={t('filterToday')} />
                     <TimeButton range="YESTERDAY" label={t('filterYesterday')} />
                     
-                    {/* Dropdown */}
                     <div className="relative h-8">
                         <select 
                             value={timeRange} 
@@ -498,7 +478,6 @@ const StatsBoard: React.FC<StatsBoardProps> = ({ onClose }) => {
                 </div>
              </div>
 
-             {/* Date Header for Current Page */}
              {currentDayLogs.length > 0 && (
                 <div className="relative z-10 mb-4 flex justify-center">
                     <div className="bg-white border-2 border-black px-4 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rotate-1">

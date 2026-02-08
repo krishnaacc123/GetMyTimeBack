@@ -1,7 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import RetroButton from './RetroButton';
+import InfoTooltip from './InfoTooltip';
+import ImportPreviewModal from './ImportPreviewModal';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useSettings } from '../contexts/SettingsContext';
+import { useLogs } from '../contexts/LogsContext';
+import { StudyLog, AppSettings } from '../types';
 
 interface SettingsModalProps {
   onClose: () => void;
@@ -30,13 +34,22 @@ const PRESETS = [
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
   const { t } = useLanguage();
-  const { settings, updateSettings } = useSettings();
+  const { settings, updateSettings, importSettings } = useSettings();
+  const { logs, importLogs } = useLogs();
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [localStudy, setLocalStudy] = useState<string>(settings.studyDuration.toString());
   const [localBreak, setLocalBreak] = useState<string>(settings.breakDuration.toString());
   const [localSound, setLocalSound] = useState<boolean>(settings.soundEnabled);
   const [error, setError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  const [importPreview, setImportPreview] = useState<{
+      data: { logs: StudyLog[], settings: AppSettings },
+      newCount: number,
+      dupCount: number
+  } | null>(null);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -97,7 +110,85 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
     if (error) setError(null);
   };
 
+  // --- Import / Export Logic ---
+
+  const handleExport = () => {
+      const data = {
+          version: 1,
+          timestamp: Date.now(),
+          settings: settings,
+          logs: logs
+      };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `getmytimeback-backup-${new Date().toISOString().slice(0,10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+  };
+
+  const handleImportClick = () => {
+      fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+          try {
+              const text = event.target?.result as string;
+              const data = JSON.parse(text);
+
+              // Basic validation
+              if (!data.logs || !Array.isArray(data.logs)) throw new Error("Invalid format: Missing logs array");
+              if (!data.settings) throw new Error("Invalid format: Missing settings object");
+
+              // Calculate Preview Stats
+              const importedLogs: StudyLog[] = data.logs;
+              const existingIds = new Set(logs.map(l => l.id));
+              const newLogs = importedLogs.filter(l => !existingIds.has(l.id));
+              
+              setImportPreview({
+                  data: { logs: importedLogs, settings: data.settings },
+                  newCount: newLogs.length,
+                  dupCount: importedLogs.length - newLogs.length
+              });
+              
+          } catch (err) {
+              setError("Failed to import data. Invalid file format.");
+          }
+      };
+      reader.readAsText(file);
+      // Reset input to allow re-selecting same file
+      e.target.value = '';
+  };
+
+  const handleConfirmImport = () => {
+      if (!importPreview) return;
+      
+      const { data } = importPreview;
+      
+      // Restore
+      importSettings(data.settings);
+      importLogs(data.logs);
+      
+      setLocalStudy(data.settings.studyDuration.toString());
+      setLocalBreak(data.settings.breakDuration.toString());
+      setLocalSound(data.settings.soundEnabled);
+
+      setSuccessMsg("Data imported & merged successfully!");
+      setTimeout(() => setSuccessMsg(null), 3000);
+      
+      setImportPreview(null);
+  };
+
   return (
+    <>
     <dialog 
       ref={dialogRef}
       onCancel={handleCancel}
@@ -118,6 +209,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
       {error && (
           <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-2 mb-4 text-sm font-bold animate-pulse" role="alert">
               <p>{error}</p>
+          </div>
+      )}
+
+      {successMsg && (
+          <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-2 mb-4 text-sm font-bold animate-pulse" role="alert">
+              <p>{successMsg}</p>
           </div>
       )}
 
@@ -169,6 +266,34 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
               <span className="font-bold font-body text-lg group-hover:underline decoration-wavy text-black">Enable Sound</span>
             </label>
           </div>
+
+          <div className="pt-4 border-t-2 border-dashed border-gray-300">
+              <div className="flex items-center gap-2 mb-2">
+                  <label className="font-bold text-gray-500 uppercase text-xs tracking-widest">Data Backup</label>
+                  <InfoTooltip text="All information is stored locally in your browser and is not saved on any server. Clearing cookies or browser data will permanently delete it. We recommend using the backup feature to export and restore your data when needed. Imported data will be merged with your existing data." />
+              </div>
+              <div className="flex gap-2">
+                  <button 
+                      onClick={handleExport}
+                      className="flex-1 bg-white border-2 border-black p-2 font-bold text-sm text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-gray-100 active:translate-y-[1px] active:shadow-none transition-all"
+                  >
+                      Export JSON
+                  </button>
+                  <button 
+                      onClick={handleImportClick}
+                      className="flex-1 bg-white border-2 border-black p-2 font-bold text-sm text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-gray-100 active:translate-y-[1px] active:shadow-none transition-all"
+                  >
+                      Import JSON
+                  </button>
+                  <input 
+                      type="file" 
+                      ref={fileInputRef} 
+                      onChange={handleFileChange} 
+                      accept=".json" 
+                      className="hidden" 
+                  />
+              </div>
+          </div>
         </div>
 
         <div className="flex-1 border-l-0 md:border-l-2 border-dashed border-gray-300 md:pl-6 pt-4 md:pt-0 border-t-2 md:border-t-0 mt-4 md:mt-0">
@@ -198,6 +323,17 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
           <RetroButton variant="success" onClick={handleSave} className="flex-1">{t('save')}</RetroButton>
       </div>
     </dialog>
+
+    {importPreview && (
+        <ImportPreviewModal 
+            importData={importPreview.data}
+            newLogsCount={importPreview.newCount}
+            duplicateLogsCount={importPreview.dupCount}
+            onConfirm={handleConfirmImport}
+            onCancel={() => setImportPreview(null)}
+        />
+    )}
+    </>
   );
 };
 

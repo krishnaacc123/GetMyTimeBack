@@ -14,6 +14,7 @@ interface LogsContextType {
   addLog: (type: 'STUDY' | 'BREAK', seconds: number, endTime?: number, sessionId?: string, isManual?: boolean) => void;
   deleteLog: (id: string) => void;
   clearLogs: (scope: 'TODAY' | 'ALL') => void;
+  importLogs: (newLogs: StudyLog[]) => void;
 }
 
 const LogsContext = createContext<LogsContextType | undefined>(undefined);
@@ -83,8 +84,17 @@ export const LogsProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, []);
 
+  const importLogs = useCallback((newLogs: StudyLog[]) => {
+    setLogs(prev => {
+        const existingIds = new Set(prev.map(l => l.id));
+        const uniqueNewLogs = newLogs.filter(l => !existingIds.has(l.id));
+        if (uniqueNewLogs.length === 0) return prev;
+        return [...prev, ...uniqueNewLogs];
+    });
+  }, []);
+
   return (
-    <LogsContext.Provider value={{ logs, todayStats, addLog, deleteLog, clearLogs }}>
+    <LogsContext.Provider value={{ logs, todayStats, addLog, deleteLog, clearLogs, importLogs }}>
       {children}
     </LogsContext.Provider>
   );

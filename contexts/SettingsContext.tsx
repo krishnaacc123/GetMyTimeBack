@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
+import React, { createContext, useState, useContext, useEffect, ReactNode, useCallback } from 'react';
 import { AppSettings } from '../types';
 import { DEFAULT_STUDY_TIME, DEFAULT_BREAK_TIME, STORAGE_KEY_SETTINGS } from '../constants';
 
@@ -7,6 +7,7 @@ interface SettingsContextType {
   updateSettings: (studyDuration: number, breakDuration: number, soundEnabled: boolean) => void;
   toggleTheme: () => void;
   toggleSound: () => void;
+  importSettings: (newSettings: AppSettings) => void;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -38,21 +39,25 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
     document.documentElement.classList.remove('dark');
   }, [settings]);
 
-  const updateSettings = (studyDuration: number, breakDuration: number, soundEnabled: boolean) => {
+  const updateSettings = useCallback((studyDuration: number, breakDuration: number, soundEnabled: boolean) => {
     setSettings(prev => ({ ...prev, studyDuration, breakDuration, soundEnabled }));
-  };
+  }, []);
 
-  const toggleTheme = () => {
+  const toggleTheme = useCallback(() => {
     // Disabled for now to preserve identity
     // setSettings(prev => ({ ...prev, isDarkMode: !prev.isDarkMode }));
-  };
+  }, []);
 
-  const toggleSound = () => {
+  const toggleSound = useCallback(() => {
     setSettings(prev => ({ ...prev, soundEnabled: !prev.soundEnabled }));
-  };
+  }, []);
+
+  const importSettings = useCallback((newSettings: AppSettings) => {
+      setSettings(newSettings);
+  }, []);
 
   return (
-    <SettingsContext.Provider value={{ settings, updateSettings, toggleTheme, toggleSound }}>
+    <SettingsContext.Provider value={{ settings, updateSettings, toggleTheme, toggleSound, importSettings }}>
       {children}
     </SettingsContext.Provider>
   );

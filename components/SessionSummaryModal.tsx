@@ -35,6 +35,12 @@ const SessionSummaryModal: React.FC<SessionSummaryModalProps> = ({
     }
   }, []);
 
+  // Reset processing state if data changes (e.g. transitioning from 'Break Over' to 'Summary')
+  // This prevents the button from staying disabled if the modal remains open after an action.
+  useEffect(() => {
+      setIsProcessing(false);
+  }, [data]);
+
   const handleCancel = (e: React.SyntheticEvent) => {
     e.preventDefault();
     if (!isProcessing) {

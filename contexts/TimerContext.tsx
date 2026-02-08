@@ -90,29 +90,23 @@ export const TimerProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             isBlob = true;
         } else {
             // Fallback: Generate on Main Thread (for Safari/Mobile support)
-            // This runs on every tick if worker fails, which is fine as it ensures it works.
             url = drawFaviconFallback(workerTimeLeft, currentSegmentDurationRef.current, modeRef.current);
             isBlob = false;
         }
 
         if (url) {
-            // Find existing link
             let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
             if (!link) {
                 link = document.createElement('link');
                 link.rel = 'icon';
                 document.head.appendChild(link);
             }
-            
-            // Update href
             link.href = url;
 
-            // Cleanup old URL to prevent memory leaks ONLY if it was a blob we created
             if (faviconUrlRef.current) {
                 URL.revokeObjectURL(faviconUrlRef.current);
                 faviconUrlRef.current = null;
             }
-            
             if (isBlob) {
                 faviconUrlRef.current = url;
             }
@@ -120,7 +114,6 @@ export const TimerProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
       } else if (type === 'COMPLETE') {
         setTimeLeft(0);
-        // Execute completion in next tick to avoid state update collision
         setTimeout(() => completeSessionRef.current(), 0);
       }
     };
@@ -136,11 +129,10 @@ export const TimerProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     const state: TimerState = {
       mode: currentMode,
       remainingTime: remaining,
-      pausedStudyTime: pausedRemainingTimeRef.current, // Use to store remainder
-      activeSessionTotalTime: currentSegmentDurationRef.current, // Storing SECONDS now
-      
-      currentSessionBreakTime: 0, // Unused in new logic
-      pendingLogs: [], // No longer used
+      pausedStudyTime: pausedRemainingTimeRef.current,
+      activeSessionTotalTime: currentSegmentDurationRef.current,
+      currentSessionBreakTime: 0, 
+      pendingLogs: [],
       currentSessionId: currentSessionIdRef.current
     };
     localStorage.setItem(STORAGE_KEY_TIMER_STATE, JSON.stringify(state));
@@ -151,8 +143,6 @@ export const TimerProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   }, []);
 
   // --- Persistence Effect ---
-  // We still use an effect to persist state periodically, 
-  // but now it's reactive to the updates coming from the worker
   useEffect(() => {
     if (isActive) {
         persistTimerState(mode, timeLeft);
@@ -170,15 +160,11 @@ export const TimerProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           setTimeLeft(state.remainingTime);
           setIsActive(true);
           
-          // Restore segment duration (stored as seconds now)
           currentSegmentDurationRef.current = state.activeSessionTotalTime || (settings.studyDuration * 60);
           pausedRemainingTimeRef.current = state.pausedStudyTime;
           
-          if (state.currentSessionId) {
-              setCurrentSessionId(state.currentSessionId);
-          }
+          if (state.currentSessionId) setCurrentSessionId(state.currentSessionId);
 
-          // RESTART THE WORKER with the restored time
           if (workerRef.current) {
              workerRef.current.postMessage({ 
                  command: 'START', 
@@ -187,11 +173,7 @@ export const TimerProvider: React.FC<{ children: ReactNode }> = ({ children }) =
                  totalDuration: currentSegmentDurationRef.current 
              });
           }
-          
-          // Restart background silence if we are restoring an active session
-          // Note: Browser might block this until user interaction, but it's worth trying
           startBackgroundSilence();
-
           window.history.pushState({ timer: true }, '');
         } else {
           clearTimerState();
@@ -223,7 +205,6 @@ export const TimerProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     setTimeLeft(durationSeconds);
     setIsActive(true);
 
-    // Start Worker
     if (workerRef.current) {
         workerRef.current.postMessage({ 
             command: 'START', 
@@ -233,7 +214,6 @@ export const TimerProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         });
     }
 
-    // Start Anti-Throttling Silence
     startBackgroundSilence();
     
     if (replaceHistory) {
@@ -246,70 +226,46 @@ export const TimerProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const stopSession = useCallback(() => {
     setIsActive(false);
     clearTimerState();
-    
-    // Stop Worker
     if (workerRef.current) {
         workerRef.current.postMessage({ command: 'STOP' });
     }
-    
-    // Stop Anti-Throttling Silence
     stopBackgroundSilence();
-    
-    // Reset Favicon to Default
     const link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
-    if (link) {
-        link.href = DEFAULT_FAVICON_HREF;
-    }
-    
-    // Cleanup old URL if it exists
+    if (link) link.href = DEFAULT_FAVICON_HREF;
     if (faviconUrlRef.current) {
         URL.revokeObjectURL(faviconUrlRef.current);
         faviconUrlRef.current = null;
     }
-    
   }, [clearTimerState]);
 
   // --- Completion Logic ---
   const completeSession = useCallback(() => {
     stopSession();
-    
-    if (settingsRef.current.soundEnabled) {
-      playAlarm();
-    }
+    if (settingsRef.current.soundEnabled) playAlarm();
     
     const currentMode = modeRef.current;
-    
-    // Log the completed segment
     const duration = currentSegmentDurationRef.current; 
     
     addLog(
         currentMode === TimerMode.STUDY ? 'STUDY' : 'BREAK', 
         duration, 
         Date.now(), 
-        currentSessionIdRef.current
+        currentSessionIdRef.current,
+        false
     );
 
-    // Update session totals
     if (currentMode === TimerMode.STUDY) {
         sessionTotalStudyRef.current += duration;
-        
-        // Auto-renew study -> study
         nextSessionActionRef.current = () => internalStartTimer(TimerMode.STUDY, undefined, true);
-        
-        // Reset paused state since we finished
         pausedRemainingTimeRef.current = null;
-
         setSummaryData({
             type: 'STUDY',
             duration: duration, 
             studyDuration: sessionTotalStudyRef.current,
             finishedNaturally: true
         });
-
     } else {
-        // BREAK
         sessionTotalBreakRef.current += duration;
-        
         if (pausedRemainingTimeRef.current !== null) {
             const remainder = pausedRemainingTimeRef.current;
             nextSessionActionRef.current = () => {
@@ -321,7 +277,6 @@ export const TimerProvider: React.FC<{ children: ReactNode }> = ({ children }) =
                 internalStartTimer(TimerMode.STUDY, undefined, true);
             };
         }
-
         overtimeProcessedRef.current = false;
         setSummaryData({
             type: 'BREAK',
@@ -351,14 +306,11 @@ export const TimerProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   const takeBreak = useCallback(() => {
     if (modeRef.current === TimerMode.STUDY) {
-        // Calculate elapsed time for this segment
         const elapsed = currentSegmentDurationRef.current - timeLeft;
         if (elapsed > 0) {
-            addLog('STUDY', elapsed, Date.now(), currentSessionIdRef.current);
+            addLog('STUDY', elapsed, Date.now(), currentSessionIdRef.current, false);
             sessionTotalStudyRef.current += elapsed;
         }
-        
-        // Store remaining time to resume later
         pausedRemainingTimeRef.current = timeLeft;
     }
     internalStartTimer(TimerMode.BREAK, undefined, true);
@@ -372,28 +324,24 @@ export const TimerProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             sessionTotalBreakRef.current += elapsed;
         }
     }
-
     stopSession();
-
     if (pausedRemainingTimeRef.current !== null) {
-        // Resume remaining study time
         internalStartTimer(TimerMode.STUDY, pausedRemainingTimeRef.current, true);
         pausedRemainingTimeRef.current = null;
     } else {
-        // Start fresh
         internalStartTimer(TimerMode.STUDY, undefined, true);
     }
   }, [timeLeft, internalStartTimer, stopSession, addLog]);
 
   const endSessionAndLog = useCallback(() => {
-    // Log whatever happened in current segment
     const elapsed = currentSegmentDurationRef.current - timeLeft;
     if (elapsed > 0) {
         addLog(
             modeRef.current === TimerMode.STUDY ? 'STUDY' : 'BREAK', 
             elapsed, 
             Date.now(), 
-            currentSessionIdRef.current
+            currentSessionIdRef.current,
+            false
         );
         if (modeRef.current === TimerMode.STUDY) {
             sessionTotalStudyRef.current += elapsed;
@@ -403,13 +351,12 @@ export const TimerProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     }
 
     setSummaryData({
-        type: 'STUDY', // Just generic completion
+        type: 'STUDY',
         duration: sessionTotalBreakRef.current,
         studyDuration: sessionTotalStudyRef.current,
         finishedNaturally: false
     });
 
-    // Cleanup
     setCurrentSessionId(undefined);
     stopSession();
     setMode(TimerMode.IDLE);
@@ -427,7 +374,6 @@ export const TimerProvider: React.FC<{ children: ReactNode }> = ({ children }) =
              sessionTotalBreakRef.current += overtime;
          }
      }
-
      if (nextSessionActionRef.current) {
          nextSessionActionRef.current();
          nextSessionActionRef.current = null;
@@ -444,7 +390,6 @@ export const TimerProvider: React.FC<{ children: ReactNode }> = ({ children }) =
              sessionTotalBreakRef.current += overtime;
          }
      }
-     
      setSummaryData(null);
      nextSessionActionRef.current = null;
      setCurrentSessionId(undefined);
@@ -464,7 +409,6 @@ export const TimerProvider: React.FC<{ children: ReactNode }> = ({ children }) =
              addLog('BREAK', overtime, Date.now(), currentSessionIdRef.current);
              sessionTotalBreakRef.current += overtime;
          }
-         
          setSummaryData(prev => prev ? ({
              ...prev,
              finishedNaturally: false,
@@ -476,9 +420,7 @@ export const TimerProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   useEffect(() => {
     const handlePopState = (event: PopStateEvent) => {
-      if (!event.state?.timer && isActive) {
-        endSessionAndLog();
-      }
+      if (!event.state?.timer && isActive) endSessionAndLog();
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
